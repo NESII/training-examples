@@ -471,28 +471,37 @@ module sw_refactor
         uh = u * h
         vh = v * h
 
-
-        h_mid_xt = 0.5 * (h(2:nx,:)+h(1:nx-1,:)) -(0.5*dt/dx) * (uh(2:nx,:)-uh(1:nx-1,:))
-        h_mid_yt = 0.5 * (h(:,2:ny)+h(:,1:ny-1)) -(0.5*dt/dy) * (vh(:,2:ny)-vh(:,1:ny-1))
+        h_mid_xt = 0.0
+        h_mid_yt = 0.0
+        uh_mid_xt = 0.0
+        uh_mid_yt = 0.0
+        vh_mid_xt = 0.0
+        vh_mid_yt = 0.0
+        
+        h_mid_xt(1:nx-1,:) = 0.5 * (h(2:nx,:)+h(1:nx-1,:)) -(0.5*dt/dx) * (uh(2:nx,:)-uh(1:nx-1,:))
+        h_mid_yt(:,1:ny-1) = 0.5 * (h(:,2:ny)+h(:,1:ny-1)) -(0.5*dt/dy) * (vh(:,2:ny)-vh(:,1:ny-1))
 
         Ux = uh * u + 0.5 * g * h**2
         Uy = uh * v
-        uh_mid_xt = 0.5 * (uh(2:nx,:)+uh(1:nx-1,:)) -(0.5*dt/dx) * (Ux(2:nx,:)-Ux(1:nx-1,:))
-        uh_mid_yt = 0.5 * (uh(:,2:ny)+uh(:,1:ny-1)) -(0.5*dt/dy) * (Uy(:,2:ny)-Uy(:,1:ny-1))
-
+        uh_mid_xt(1:nx-1,:) = 0.5 * (uh(2:nx,:)+uh(1:nx-1,:)) -(0.5*dt/dx) * (Ux(2:nx,:)-Ux(1:nx-1,:))
+        uh_mid_yt(:,1:ny-1) = 0.5 * (uh(:,2:ny)+uh(:,1:ny-1)) -(0.5*dt/dy) * (Uy(:,2:ny)-Uy(:,1:ny-1))
 
         Vx = Uy
         Vy = vh * v + 0.5 * g * h**2
-        vh_mid_xt = 0.5 * (vh(2:nx,:) + vh(1:nx-1,:)) -(0.5*dt/dx) * (Vx(2:nx,:) - Vx(1:nx-1,:))
-        vh_mid_yt = 0.5 * (vh(:,2:ny) + vh(:,1:ny-1)) -(0.5*dt/dy) * (Vy(:,2:ny) - Vy(:,1:ny-1))
+        vh_mid_xt(1:nx-1,:) = 0.5 * (vh(2:nx,:) + vh(1:nx-1,:)) -(0.5*dt/dx) * (Vx(2:nx,:) - Vx(1:nx-1,:))
+        vh_mid_yt(:,1:ny-1) = 0.5 * (vh(:,2:ny) + vh(:,1:ny-1)) -(0.5*dt/dy) * (Vy(:,2:ny) - Vy(:,1:ny-1))
 
 
         ! Now use the mid-point values to predict the values at the next
         ! timestep
 
+        h_new = 0.0
+        u_new = 0.0
+        v_new = 0.0
+        
         h_new = h(2:nx-1,2:ny-1) &
-            - (dt/dx) * (uh_mid_xt(2:nx,2:ny-1) - uh_mid_xt(1:nx-1,2:ny-1)) &
-            - (dt/dy) * (vh_mid_yt(2:nx-1,2:ny) - vh_mid_yt(2:nx-1,1:ny-1))
+              - (dt/dx) * (uh_mid_xt(2:nx-1,2:ny-1) - uh_mid_xt(1:nx-2,2:ny-1)) &
+              - (dt/dy) * (vh_mid_yt(2:nx-1,2:ny-1) - vh_mid_yt(2:nx-1,1:ny-2))
 
 
         Ux_mid_xt = uh_mid_xt * uh_mid_xt / h_mid_xt + 0.5 * g * h_mid_xt**2
@@ -500,8 +509,8 @@ module sw_refactor
 
 
         uh_new = uh(2:nx-1,2:ny-1) &
-          - (dt/dx) * (Ux_mid_xt(2:nx,2:ny-1) - Ux_mid_xt(1:nx-1,2:ny-1)) &
-          - (dt/dy) * (Uy_mid_yt(2:nx-1,2:ny) - Uy_mid_yt(2:nx-1,1:ny-1)) &
+          - (dt/dx) * (Ux_mid_xt(2:nx-1,2:ny-1) - Ux_mid_xt(1:nx-2,2:ny-1)) &
+          - (dt/dy) * (Uy_mid_yt(2:nx-1,2:ny-1) - Uy_mid_yt(2:nx-1,1:ny-2)) &
           + dt * u_tendency * 0.5 * (h(2:nx-1,2:ny-1) + h_new)
 
 
@@ -509,8 +518,8 @@ module sw_refactor
         Vy_mid_yt = vh_mid_yt * vh_mid_yt / h_mid_yt + 0.5 * g * h_mid_yt**2
 
         vh_new = vh(2:nx-1,2:ny-1) &
-          - (dt/dx) * (Vx_mid_xt(2:nx,2:ny-1) - Vx_mid_xt(1:nx-1,2:ny-1)) &
-          - (dt/dy) * (Vy_mid_yt(2:nx-1,2:ny) - Vy_mid_yt(2:nx-1,1:ny-1)) &
+          - (dt/dx) * (Vx_mid_xt(2:nx-1,2:ny-1) - Vx_mid_xt(1:nx-2,2:ny-1)) &
+          - (dt/dy) * (Vy_mid_yt(2:nx-1,2:ny-1) - Vy_mid_yt(2:nx-1,1:ny-2)) &
           + dt * v_tendency * 0.5 * (h(2:nx-1,2:ny-1) + h_new)
 
         u_new = uh_new / h_new
@@ -533,7 +542,7 @@ module sw_refactor
         !print *, "Leaving lax_wendroff"
 
     end subroutine
-
+    
 #ifdef WITH_NETCDF
     ! NetCDF status check
     subroutine check(status)
